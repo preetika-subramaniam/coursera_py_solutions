@@ -36,6 +36,14 @@ CREATE TABLE Track (
     album_id  INTEGER,
     len INTEGER, rating INTEGER, count INTEGER
 );
+
+CREATE TABLE Genre (
+    id  INTEGER NOT NULL PRIMARY KEY 
+        AUTOINCREMENT UNIQUE,
+    title TEXT  UNIQUE,
+    album_id  INTEGER,
+    genre TEXT 
+);
 ''')
 
 
@@ -62,14 +70,15 @@ for entry in all:
     name = lookup(entry, 'Name')
     artist = lookup(entry, 'Artist')
     album = lookup(entry, 'Album')
+    genre = lookup(entry, 'Genre')
     count = lookup(entry, 'Play Count')
     rating = lookup(entry, 'Rating')
     length = lookup(entry, 'Total Time')
 
-    if name is None or artist is None or album is None : 
+    if name is None or artist is None or album is None or genre is None : 
         continue
 
-    print(name, artist, album, count, rating, length)
+    #print(name, artist, album, count, rating, length)
 
     cur.execute('''INSERT OR IGNORE INTO Artist (name) 
         VALUES ( ? )''', ( artist, ) )
@@ -85,5 +94,22 @@ for entry in all:
         (title, album_id, len, rating, count) 
         VALUES ( ?, ?, ?, ?, ? )''', 
         ( name, album_id, length, rating, count ) )
-
+    
+    cur.execute('''INSERT OR REPLACE INTO Genre
+        (title, album_id, genre) 
+        VALUES ( ?, ?, ? )''', 
+        ( name, album_id, genre ) )
+    
     conn.commit()
+
+    
+data = cur.executescript('''
+    SELECT Track.title, Artist.name, Album.title, Genre.name 
+    FROM Track JOIN Genre JOIN Album JOIN Artist 
+    ON Track.genre_id = Genre.ID and Track.album_id = Album.id 
+        AND Album.artist_id = Artist.id
+    ORDER BY Artist.name LIMIT 3
+    ''')
+
+print(data)
+
