@@ -17,6 +17,7 @@ cur.executescript('''
 DROP TABLE IF EXISTS Artist;
 DROP TABLE IF EXISTS Album;
 DROP TABLE IF EXISTS Track;
+DROP TABLE IF EXISTS Genre;
 
 CREATE TABLE Artist (
     id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
@@ -34,7 +35,8 @@ CREATE TABLE Track (
         AUTOINCREMENT UNIQUE,
     title TEXT  UNIQUE,
     album_id  INTEGER,
-    len INTEGER, rating INTEGER, count INTEGER
+    len INTEGER, rating INTEGER, count INTEGER,
+    genre_id INTEGER
 );
 
 CREATE TABLE Genre (
@@ -42,7 +44,7 @@ CREATE TABLE Genre (
         AUTOINCREMENT UNIQUE,
     title TEXT  UNIQUE,
     album_id  INTEGER,
-    genre TEXT 
+    name TEXT 
 );
 ''')
 
@@ -98,14 +100,19 @@ for entry in all:
     cur.execute('''INSERT OR REPLACE INTO Genre
         (title, album_id, genre) 
         VALUES ( ?, ?, ? )''', 
-        ( name, album_id, genre ) )
-    
+        ( name, album_id, name ) )
+    cur.execute('SELECT id FROM Genre WHERE genre = ? ', (name, ))
+    genre_id = cur.fetchone()[0]
+
     conn.commit()
 
     
 data = cur.executescript('''
     SELECT Track.title, Artist.name, Album.title, Genre.name 
-    FROM Track JOIN Genre JOIN Album JOIN Artist 
+    FROM Track 
+        JOIN Genre 
+            JOIN Album 
+                JOIN Artist 
     ON Track.genre_id = Genre.ID and Track.album_id = Album.id 
         AND Album.artist_id = Artist.id
     ORDER BY Artist.name LIMIT 3
