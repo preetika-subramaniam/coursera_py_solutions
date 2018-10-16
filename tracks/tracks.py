@@ -101,7 +101,7 @@ for entry in all:
         (title, album_id, genre) 
         VALUES ( ?, ?, ? )''', 
         ( name, album_id, name ) )
-    cur.execute('SELECT id FROM Genre WHERE genre = ? ', (name, ))
+    cur.execute('SELECT id FROM Genre WHERE name = ? ', (name, ))
     genre_id = cur.fetchone()[0]
 
     conn.commit()
