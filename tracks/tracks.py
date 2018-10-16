@@ -24,6 +24,11 @@ CREATE TABLE Artist (
     name    TEXT UNIQUE
 );
 
+CREATE TABLE Genre (
+    id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+    name    TEXT UNIQUE
+);
+
 CREATE TABLE Album (
     id  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
     artist_id  INTEGER,
@@ -35,16 +40,10 @@ CREATE TABLE Track (
         AUTOINCREMENT UNIQUE,
     title TEXT  UNIQUE,
     album_id  INTEGER,
-    len INTEGER, rating INTEGER, count INTEGER,
-    genre_id INTEGER
-);
-
-CREATE TABLE Genre (
-    id  INTEGER NOT NULL PRIMARY KEY 
-        AUTOINCREMENT UNIQUE,
-    title TEXT  UNIQUE,
-    album_id  INTEGER,
-    name TEXT 
+    genre_id  INTEGER,
+    len INTEGER, 
+    rating INTEGER, 
+    count INTEGER
 );
 ''')
 
@@ -77,15 +76,20 @@ for entry in all:
     rating = lookup(entry, 'Rating')
     length = lookup(entry, 'Total Time')
 
-    if name is None or artist is None or album is None or genre is None : 
+    if name is None or artist is None or album is None or genre is None: 
         continue
 
-    #print(name, artist, album, count, rating, length)
+    #print(name, artist, album, count, rating, length, genre)
 
     cur.execute('''INSERT OR IGNORE INTO Artist (name) 
         VALUES ( ? )''', ( artist, ) )
-    cur.execute('SELECT id FROM Artist WHERE name = ? ', (artist, ))
+    cur.execute('SELECT id FROM Artist WHERE name= ? ', (artist, ))
     artist_id = cur.fetchone()[0]
+
+    cur.execute('''INSERT OR REPLACE INTO Genre (name) 
+        VALUES ( ? )''', ( genre, ) )
+    cur.execute('SELECT id FROM Genre WHERE name = ? ', (genre, ))
+    genre_id = cur.fetchone()[0]
 
     cur.execute('''INSERT OR IGNORE INTO Album (title, artist_id) 
         VALUES ( ?, ? )''', ( album, artist_id ) )
@@ -93,22 +97,16 @@ for entry in all:
     album_id = cur.fetchone()[0]
 
     cur.execute('''INSERT OR REPLACE INTO Track
-        (title, album_id, len, rating, count) 
-        VALUES ( ?, ?, ?, ?, ? )''', 
-        ( name, album_id, length, rating, count ) )
+        (title, album_id, genre_id, len, rating, count) 
+        VALUES ( ?, ?, ?, ?, ?, ? )''', 
+        ( name, album_id, genre_id, length, rating, count ) )
     
-    cur.execute('''INSERT OR REPLACE INTO Genre
-        (title, album_id, genre) 
-        VALUES ( ?, ?, ? )''', 
-        ( name, album_id, name ) )
-    cur.execute('SELECT id FROM Genre WHERE name = ? ', (name, ))
-    genre_id = cur.fetchone()[0]
 
     conn.commit()
 
-    
-data = cur.executescript('''
-    SELECT Track.title, Artist.name, Album.title, Genre.name 
+'''   
+data = cur.executescript(
+    SELECT Track.title, Artist.name, Album.title, Genre.name
     FROM Track 
         JOIN Genre 
             JOIN Album 
@@ -116,7 +114,6 @@ data = cur.executescript('''
     ON Track.genre_id = Genre.ID and Track.album_id = Album.id 
         AND Album.artist_id = Artist.id
     ORDER BY Artist.name LIMIT 3
-    ''')
-
-print(data)
+    )
+'''
 
